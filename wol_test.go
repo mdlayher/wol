@@ -374,3 +374,66 @@ func TestMagicPacketUnmarshalBinary(t *testing.T) {
 		}
 	}
 }
+
+// Benchmarks for MagicPacket.MarshalBinary
+
+func BenchmarkMagicPacketMarshalBinary(b *testing.B) {
+	p := &MagicPacket{
+		Target: net.HardwareAddr{0xde, 0xad, 0xbe, 0xef, 0xde, 0xad},
+	}
+
+	benchmarkMagicPacketMarshalBinary(b, p)
+}
+
+func BenchmarkMagicPacketMarshalBinaryPassword(b *testing.B) {
+	p := &MagicPacket{
+		Target:   net.HardwareAddr{0xde, 0xad, 0xbe, 0xef, 0xde, 0xad},
+		Password: []byte{0, 1, 2, 3, 4, 5},
+	}
+
+	benchmarkMagicPacketMarshalBinary(b, p)
+}
+
+func benchmarkMagicPacketMarshalBinary(b *testing.B, p *MagicPacket) {
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		if _, err := p.MarshalBinary(); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+// Benchmarks for MagicPacket.UnmarshalBinary
+
+func BenchmarkMagicPacketUnmarshalBinary(b *testing.B) {
+	p := &MagicPacket{
+		Target: net.HardwareAddr{0xde, 0xad, 0xbe, 0xef, 0xde, 0xad},
+	}
+
+	benchmarkMagicPacketUnmarshalBinary(b, p)
+}
+
+func BenchmarkMagicPacketUnmarshalBinaryPassword(b *testing.B) {
+	p := &MagicPacket{
+		Target:   net.HardwareAddr{0xde, 0xad, 0xbe, 0xef, 0xde, 0xad},
+		Password: []byte{0, 1, 2, 3, 4, 5},
+	}
+
+	benchmarkMagicPacketUnmarshalBinary(b, p)
+}
+
+func benchmarkMagicPacketUnmarshalBinary(b *testing.B, p *MagicPacket) {
+	pb, err := p.MarshalBinary()
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		if err := p.UnmarshalBinary(pb); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
