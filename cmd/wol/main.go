@@ -18,8 +18,14 @@ var (
 func main() {
 	flag.Parse()
 
+	// Validate interface
+	ifi, err := net.InterfaceByName(*ifaceFlag)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Create client bound to specified interface
-	c, err := wol.NewClient(*ifaceFlag)
+	c, err := wol.NewClient(ifi)
 	if err != nil {
 		log.Fatal(err)
 	}

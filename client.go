@@ -15,13 +15,7 @@ type Client struct {
 }
 
 // NewClient creates a new Client using the specified network interface.
-func NewClient(iface string) (*Client, error) {
-	// Verify interface exists
-	ifi, err := net.InterfaceByName(iface)
-	if err != nil {
-		return nil, err
-	}
-
+func NewClient(ifi *net.Interface) (*Client, error) {
 	// Open raw socket to send Wake-on-LAN magic packets
 	p, err := raw.ListenPacket(ifi, raw.ProtocolWoL)
 	if err != nil {
