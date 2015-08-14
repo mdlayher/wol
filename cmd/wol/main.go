@@ -47,7 +47,7 @@ func main() {
 	}
 
 	// Use UDP mode
-	if err := (&wol.Client{}).WakePassword(*addrFlag, target, password); err != nil {
+	if err := wakeUDP(*addrFlag, target, password); err != nil {
 		log.Fatal(err)
 	}
 
@@ -69,6 +69,21 @@ func wakeRaw(iface string, target net.HardwareAddr, password []byte) error {
 
 	// Attempt to wake target machine
 	if err := c.WakePassword(target, password); err != nil {
+		log.Fatal(err)
+	}
+
+	return c.Close()
+}
+
+func wakeUDP(addr string, target net.HardwareAddr, password []byte) error {
+	// Bind to any available UDP port
+	c, err := wol.NewClient()
+	if err != nil {
+		return err
+	}
+
+	// Attempt to wake target machine
+	if err := c.WakePassword(addr, target, password); err != nil {
 		log.Fatal(err)
 	}
 

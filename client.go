@@ -7,7 +7,28 @@ import (
 // A Client is a Wake-on-LAN client which utilizes a UDP socket.  It can be
 // used to send WoL magic packets to other machines using their network
 // address.
-type Client struct{}
+type Client struct {
+	p net.PacketConn
+}
+
+// NewClient creates a new Client which binds to any available UDP port to
+// send Wake-on-LAN magic packets.
+func NewClient() (*Client, error) {
+	// Bind to any available UDP port
+	p, err := net.ListenPacket("udp", ":0")
+	if err != nil {
+		return nil, err
+	}
+
+	return &Client{
+		p: p,
+	}, nil
+}
+
+// Close closes a Client's UDP socket.
+func (c *Client) Close() error {
+	return c.p.Close()
+}
 
 // Wake sends a Wake-on-LAN magic packet to a device with the specified
 // network and hardware address.
@@ -27,14 +48,18 @@ func (c *Client) Wake(addr string, target net.HardwareAddr) error {
 // The password must be exactly 0 (empty), 4, or 6 bytes in length, or
 // ErrInvalidPassword will be returned.
 func (c *Client) WakePassword(addr string, target net.HardwareAddr, password []byte) error {
-	return c.withConn(addr, func(p net.Conn) error {
-		return c.sendWake(p, target, password)
-	})
+	return c.sendWake(addr, target, password)
 }
 
 // sendWake crafts a magic packet using the input parameters and sends the
-// frame over a UDP socket to attempt to wake a machine.
-func (c *Client) sendWake(p net.Conn, target net.HardwareAddr, password []byte) error {
+// packet over a UDP socket to attempt to wake a machine.
+func (c *Client) sendWake(addr string, target net.HardwareAddr, password []byte) error {
+	// Resolve destination address
+	uaddr, err := net.ResolveUDPAddr("udp", addr)
+	if err != nil {
+		return err
+	}
+
 	// Create magic packet with target and password
 	mp := &MagicPacket{
 		Target:   target,
@@ -46,27 +71,6 @@ func (c *Client) sendWake(p net.Conn, target net.HardwareAddr, password []byte) 
 	}
 
 	// Send magic packet to target over UDP socket
-	_, err = p.Write(mpb)
+	_, err = c.p.WriteTo(mpb, uaddr)
 	return err
-}
-
-// withConn resolves address addr, opens a UDP socket, and passes the socket
-// as a parameter to the input closure.  The socket is closed once the closure
-// returns.
-func (c *Client) withConn(addr string, fn func(p net.Conn) error) error {
-	// Resolve destination address
-	uaddr, err := net.ResolveUDPAddr("udp", addr)
-	if err != nil {
-		return err
-	}
-
-	// Dial a UDP connection
-	p, err := net.DialUDP("udp", nil, uaddr)
-	if err != nil {
-		return err
-	}
-	defer p.Close()
-
-	// Invoke closure with connection
-	return fn(p)
 }

@@ -4,10 +4,9 @@ import (
 	"bytes"
 	"net"
 	"testing"
-	"time"
 )
 
-func TestClient_sendWake(t *testing.T) {
+func TestClientWakePassword(t *testing.T) {
 	var tests = []struct {
 		desc     string
 		target   net.HardwareAddr
@@ -53,10 +52,13 @@ func TestClient_sendWake(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		p := &writeConn{}
-		c := &Client{}
+		p := &writeToPacketConn{}
+		c := &Client{
+			p: p,
+		}
 
-		if err := c.sendWake(p, tt.target, tt.password); err != nil || tt.err != nil {
+		// Address hardcoded because it doesn't matter for tests
+		if err := c.WakePassword("127.0.0.1:0", tt.target, tt.password); err != nil || tt.err != nil {
 			if want, got := tt.err, err; want != got {
 				t.Fatalf("[%02d] test %q, unexpected error: %v != %v",
 					i, tt.desc, want, got)
@@ -80,30 +82,3 @@ func TestClient_sendWake(t *testing.T) {
 		}
 	}
 }
-
-type writeConn struct {
-	b []byte
-	noopConn
-}
-
-func (w *writeConn) Write(b []byte) (int, error) {
-	w.b = make([]byte, len(b))
-	copy(w.b, b)
-
-	return len(b), nil
-}
-
-// noopConn is a net.Conn which simply no-ops any input.  It is
-// embedded in other implementations so they do not have to implement every
-// single method.
-type noopConn struct{}
-
-func (noopConn) Read(b []byte) (int, error)  { return 0, nil }
-func (noopConn) Write(b []byte) (int, error) { return 0, nil }
-
-func (noopConn) Close() error                       { return nil }
-func (noopConn) LocalAddr() net.Addr                { return nil }
-func (noopConn) RemoteAddr() net.Addr               { return nil }
-func (noopConn) SetDeadline(t time.Time) error      { return nil }
-func (noopConn) SetReadDeadline(t time.Time) error  { return nil }
-func (noopConn) SetWriteDeadline(t time.Time) error { return nil }
