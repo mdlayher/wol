@@ -74,12 +74,6 @@ func TestRawClientWakePassword(t *testing.T) {
 			continue
 		}
 
-		// Special case, trim trailing four zero characters, which would be occupied
-		// by an Ethernet frame check sequence; if one existed
-		if bytes.Equal(p.b[len(p.b)-4:], make([]byte, 4)) {
-			p.b = p.b[:len(p.b)-4]
-		}
-
 		f := new(ethernet.Frame)
 		if err := f.UnmarshalBinary(p.b); err != nil {
 			t.Fatal(err)
