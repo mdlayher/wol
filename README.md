@@ -2,3 +2,10 @@ wol [![Build Status](https://travis-ci.org/mdlayher/wol.svg?branch=master)](http
 ===
 
 Package `wol` implements a Wake-on-LAN client.  MIT Licensed.
+
+This package exposes two types, which operate slightly differently:
+- `Client`: WoL client which uses UDP sockets to send magic packets
+- `RawClient` WoL client which uses raw Ethernet sockets to send magic packets
+
+For most use cases, the `Client` type will be sufficient.  The `RawClient` type requires
+elevated privileges (root user) and currently works with Linux only.
