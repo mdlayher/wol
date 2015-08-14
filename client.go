@@ -38,7 +38,7 @@ func (c *Client) Close() error {
 // If target is not a 6 byte Ethernet hardware address, ErrInvalidTarget
 // is returned.
 func (c *Client) Wake(target net.HardwareAddr) error {
-	return c.sendWake(target, nil)
+	return c.WakePassword(target, nil)
 }
 
 // WakePassword sends a Wake-on-LAN magic packet to the specified hardware
