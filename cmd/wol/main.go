@@ -10,7 +10,8 @@ import (
 )
 
 var (
-	ifaceFlag    = flag.String("i", "eth0", "network interface to use to send Wake-on-LAN magic packet")
+	addrFlag     = flag.String("a", "", "network address for Wake-on-LAN magic packet")
+	ifaceFlag    = flag.String("i", "", "network interface to use to send Wake-on-LAN magic packet")
 	targetFlag   = flag.String("t", "", "target for Wake-on-LAN magic packet")
 	passwordFlag = flag.String("p", "", "optional password for Wake-on-LAN magic packet")
 )
@@ -18,20 +19,8 @@ var (
 func main() {
 	flag.Parse()
 
-	// Validate interface
-	ifi, err := net.InterfaceByName(*ifaceFlag)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Create client bound to specified interface
-	c, err := wol.NewRawClient(ifi)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	// Validate hardware address
-	addr, err := net.ParseMAC(*targetFlag)
+	target, err := net.ParseMAC(*targetFlag)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -42,12 +31,46 @@ func main() {
 		password = []byte(*passwordFlag)
 	}
 
-	// Attempt to wake target machine
-	if err := c.WakePassword(addr, password); err != nil {
+	// Can only do raw or UDP mode, not both
+	if *addrFlag != "" && *ifaceFlag != "" {
+		log.Fatalf("must set '-a' or '-i' flag exclusively")
+	}
+
+	// Check for raw mode
+	if *ifaceFlag != "" {
+		if err := wakeRaw(*ifaceFlag, target, password); err != nil {
+			log.Fatal(err)
+		}
+
+		log.Printf("sent raw Wake-on-LAN magic packet using %s to %s", *ifaceFlag, *targetFlag)
+		return
+	}
+
+	// Use UDP mode
+	if err := (&wol.Client{}).WakePassword(*addrFlag, target, password); err != nil {
 		log.Fatal(err)
 	}
 
-	log.Printf("sent Wake-on-LAN magic packet using %s to %s", *ifaceFlag, *targetFlag)
+	log.Printf("sent UDP Wake-on-LAN magic packet using %s to %s", *addrFlag, *targetFlag)
+}
 
-	_ = c.Close()
+func wakeRaw(iface string, target net.HardwareAddr, password []byte) error {
+	// Validate interface
+	ifi, err := net.InterfaceByName(*ifaceFlag)
+	if err != nil {
+		return err
+	}
+
+	// Create client bound to specified interface
+	c, err := wol.NewRawClient(ifi)
+	if err != nil {
+		return err
+	}
+
+	// Attempt to wake target machine
+	if err := c.WakePassword(target, password); err != nil {
+		log.Fatal(err)
+	}
+
+	return c.Close()
 }
