@@ -7,29 +7,36 @@ import (
 	"github.com/mdlayher/raw"
 )
 
-// A Client is a Wake-on-LAN client.  It can be used to send WoL magic packets
+// A RawClient is a Wake-on-LAN client which operates directly on top of
+// Ethernet frames using raw sockets.  It can be used to send WoL magic packets
 // to other machines on a local network, using their hardware addresses.
-type Client struct {
+type RawClient struct {
 	ifi *net.Interface
 	p   net.PacketConn
 }
 
-// NewClient creates a new Client using the specified network interface.
-func NewClient(ifi *net.Interface) (*Client, error) {
+// NewRawClient creates a new RawClient using the specified network interface.
+//
+// Note that raw sockets typically require elevated user privileges, such as
+// the 'root' user on Linux, or the 'SET_CAP_RAW' capability.
+//
+// For this reason, it is typically recommended to use the regular Client type
+// instead, which operates over UDP.
+func NewRawClient(ifi *net.Interface) (*RawClient, error) {
 	// Open raw socket to send Wake-on-LAN magic packets
 	p, err := raw.ListenPacket(ifi, raw.ProtocolWoL)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Client{
+	return &RawClient{
 		ifi: ifi,
 		p:   p,
 	}, nil
 }
 
-// Close closes a Client's raw socket.
-func (c *Client) Close() error {
+// Close closes a RawClient's raw socket.
+func (c *RawClient) Close() error {
 	return c.p.Close()
 }
 
@@ -37,7 +44,7 @@ func (c *Client) Close() error {
 //
 // If target is not a 6 byte Ethernet hardware address, ErrInvalidTarget
 // is returned.
-func (c *Client) Wake(target net.HardwareAddr) error {
+func (c *RawClient) Wake(target net.HardwareAddr) error {
 	return c.WakePassword(target, nil)
 }
 
@@ -49,14 +56,14 @@ func (c *Client) Wake(target net.HardwareAddr) error {
 //
 // The password must be exactly 0 (empty), 4, or 6 bytes in length, or
 // ErrInvalidPassword will be returned.
-func (c *Client) WakePassword(target net.HardwareAddr, password []byte) error {
+func (c *RawClient) WakePassword(target net.HardwareAddr, password []byte) error {
 	return c.sendWake(target, password)
 }
 
 // sendWake crafts a magic packet using the input parameters, stores it in an
 // Ethernet frame, and sends the frame over a raw socket to attempt to wake
 // a machine.
-func (c *Client) sendWake(target net.HardwareAddr, password []byte) error {
+func (c *RawClient) sendWake(target net.HardwareAddr, password []byte) error {
 	// Create magic packet with target and password
 	p := &MagicPacket{
 		Target:   target,

@@ -9,7 +9,7 @@ import (
 	"github.com/mdlayher/ethernet"
 )
 
-func TestClientWakePassword(t *testing.T) {
+func TestRawClientWakePassword(t *testing.T) {
 	var tests = []struct {
 		desc     string
 		target   net.HardwareAddr
@@ -58,7 +58,7 @@ func TestClientWakePassword(t *testing.T) {
 
 	for i, tt := range tests {
 		p := &writeToPacketConn{}
-		c := &Client{
+		c := &RawClient{
 			ifi: &net.Interface{
 				HardwareAddr: zeroHW,
 			},

@@ -25,7 +25,7 @@ func main() {
 	}
 
 	// Create client bound to specified interface
-	c, err := wol.NewClient(ifi)
+	c, err := wol.NewRawClient(ifi)
 	if err != nil {
 		log.Fatal(err)
 	}
