@@ -24,21 +24,21 @@ func TestMagicPacketMarshalBinary(t *testing.T) {
 			p: &MagicPacket{
 				Target: net.HardwareAddr{0, 1, 2},
 			},
-			err: ErrInvalidTarget,
+			err: errInvalidTarget,
 		},
 		{
 			desc: "length 7 target",
 			p: &MagicPacket{
 				Target: net.HardwareAddr{0, 1, 2, 3, 4, 5, 6},
 			},
-			err: ErrInvalidTarget,
+			err: errInvalidTarget,
 		},
 		{
 			desc: "length 19 target",
 			p: &MagicPacket{
 				Target: make([]byte, 19),
 			},
-			err: ErrInvalidTarget,
+			err: errInvalidTarget,
 		},
 		{
 			desc: "length 1 password",
@@ -46,7 +46,7 @@ func TestMagicPacketMarshalBinary(t *testing.T) {
 				Target:   hwEthernet,
 				Password: []byte{0},
 			},
-			err: ErrInvalidPassword,
+			err: errInvalidPassword,
 		},
 		{
 			desc: "length 5 password",
@@ -54,7 +54,7 @@ func TestMagicPacketMarshalBinary(t *testing.T) {
 				Target:   hwEthernet,
 				Password: []byte{0, 1, 2, 3, 4},
 			},
-			err: ErrInvalidPassword,
+			err: errInvalidPassword,
 		},
 		{
 			desc: "length 7 password",
@@ -62,7 +62,7 @@ func TestMagicPacketMarshalBinary(t *testing.T) {
 				Target:   hwEthernet,
 				Password: []byte{0, 1, 2, 3, 4, 5, 6},
 			},
-			err: ErrInvalidPassword,
+			err: errInvalidPassword,
 		},
 		{
 			desc: "OK, no password",
@@ -186,7 +186,7 @@ func TestMagicPacketUnmarshalBinary(t *testing.T) {
 		{
 			desc: "invalid sync stream (all zero)",
 			b:    make([]byte, 102),
-			err:  ErrInvalidSyncStream,
+			err:  errInvalidSyncStream,
 		},
 		{
 			desc: "hardware address with error in repeated targets",
@@ -212,7 +212,7 @@ func TestMagicPacketUnmarshalBinary(t *testing.T) {
 				// Mismatch
 				0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
 			},
-			err: ErrInvalidTarget,
+			err: errInvalidTarget,
 		},
 		{
 			desc: "length 3 password",
@@ -238,7 +238,7 @@ func TestMagicPacketUnmarshalBinary(t *testing.T) {
 				0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
 				1, 2, 3,
 			},
-			err: ErrInvalidPassword,
+			err: errInvalidPassword,
 		},
 		{
 			desc: "length 5 password",
@@ -264,7 +264,7 @@ func TestMagicPacketUnmarshalBinary(t *testing.T) {
 				0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
 				1, 2, 3, 4, 5,
 			},
-			err: ErrInvalidPassword,
+			err: errInvalidPassword,
 		},
 		{
 			desc: "OK, no password",

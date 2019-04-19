@@ -14,7 +14,7 @@ type Client struct {
 // NewClient creates a new Client which binds to any available UDP port to
 // send Wake-on-LAN magic packets.
 func NewClient() (*Client, error) {
-	// Bind to any available UDP port
+	// Bind to any available UDP port.
 	p, err := net.ListenPacket("udp", ":0")
 	if err != nil {
 		return nil, err
@@ -32,9 +32,6 @@ func (c *Client) Close() error {
 
 // Wake sends a Wake-on-LAN magic packet to a device with the specified
 // network and hardware address.
-//
-// If target is not a 6 byte Ethernet hardware address, ErrInvalidTarget
-// is returned.
 func (c *Client) Wake(addr string, target net.HardwareAddr) error {
 	return c.WakePassword(addr, target, nil)
 }
@@ -42,11 +39,7 @@ func (c *Client) Wake(addr string, target net.HardwareAddr) error {
 // WakePassword sends a Wake-on-LAN magic packet to a device with the
 // specified network and hardware address, using the specified password.
 //
-// If target is not a 6 byte Ethernet hardware address, ErrInvalidTarget
-// is returned.
-//
-// The password must be exactly 0 (empty), 4, or 6 bytes in length, or
-// ErrInvalidPassword will be returned.
+// The password must be exactly 0 (empty), 4, or 6 bytes in length.
 func (c *Client) WakePassword(addr string, target net.HardwareAddr, password []byte) error {
 	return c.sendWake(addr, target, password)
 }
@@ -54,13 +47,12 @@ func (c *Client) WakePassword(addr string, target net.HardwareAddr, password []b
 // sendWake crafts a magic packet using the input parameters and sends the
 // packet over a UDP socket to attempt to wake a machine.
 func (c *Client) sendWake(addr string, target net.HardwareAddr, password []byte) error {
-	// Resolve destination address
 	uaddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
 		return err
 	}
 
-	// Create magic packet with target and password
+	// Create magic packet with target and password.
 	mp := &MagicPacket{
 		Target:   target,
 		Password: password,
@@ -70,7 +62,7 @@ func (c *Client) sendWake(addr string, target net.HardwareAddr, password []byte)
 		return err
 	}
 
-	// Send magic packet to target over UDP socket
+	// Send magic packet to target over UDP socket.
 	_, err = c.p.WriteTo(mpb, uaddr)
 	return err
 }

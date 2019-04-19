@@ -1,54 +1,55 @@
 package wol
 
 import (
-	"bytes"
 	"net"
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/mdlayher/ethernet"
 )
 
 func TestRawClientWakePassword(t *testing.T) {
 	var tests = []struct {
-		desc     string
+		name     string
 		target   net.HardwareAddr
 		password []byte
 		err      error
 	}{
 		{
-			desc:   "5 byte target",
+			name:   "5 byte target",
 			target: make(net.HardwareAddr, 5),
-			err:    ErrInvalidTarget,
+			err:    errInvalidTarget,
 		},
 		{
-			desc:   "7 byte target",
+			name:   "7 byte target",
 			target: make(net.HardwareAddr, 7),
-			err:    ErrInvalidTarget,
+			err:    errInvalidTarget,
 		},
 		{
-			desc:     "5 bytes password",
+			name:     "5 bytes password",
 			target:   make(net.HardwareAddr, 6),
 			password: make([]byte, 5),
-			err:      ErrInvalidPassword,
+			err:      errInvalidPassword,
 		},
 		{
-			desc:     "7 byte password",
+			name:     "7 byte password",
 			target:   make(net.HardwareAddr, 6),
 			password: make([]byte, 7),
-			err:      ErrInvalidPassword,
+			err:      errInvalidPassword,
 		},
 		{
-			desc:   "OK, no password",
-			target: net.HardwareAddr{0xde, 0xad, 0xbe, 0xef, 0xde, 0xad},
+			name:     "OK, no password",
+			target:   net.HardwareAddr{0xde, 0xad, 0xbe, 0xef, 0xde, 0xad},
+			password: []byte{},
 		},
 		{
-			desc:     "OK, 4 byte password",
+			name:     "OK, 4 byte password",
 			target:   net.HardwareAddr{0xde, 0xad, 0xbe, 0xef, 0xde, 0xad},
 			password: []byte{1, 2, 3, 4},
 		},
 		{
-			desc:     "OK, 6 byte password",
+			name:     "OK, 6 byte password",
 			target:   net.HardwareAddr{0xde, 0xad, 0xbe, 0xef, 0xde, 0xad},
 			password: []byte{1, 2, 3, 4, 5, 6},
 		},
@@ -56,55 +57,62 @@ func TestRawClientWakePassword(t *testing.T) {
 
 	zeroHW := make(net.HardwareAddr, 6)
 
-	for i, tt := range tests {
-		p := &writeToPacketConn{}
-		c := &RawClient{
-			ifi: &net.Interface{
-				HardwareAddr: zeroHW,
-			},
-			p: p,
-		}
-
-		if err := c.WakePassword(tt.target, tt.password); err != nil || tt.err != nil {
-			if want, got := tt.err, err; want != got {
-				t.Fatalf("[%02d] test %q, unexpected error: %v != %v",
-					i, tt.desc, want, got)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := &writeToPacketConn{}
+			c := &RawClient{
+				ifi: &net.Interface{
+					HardwareAddr: zeroHW,
+				},
+				p: p,
 			}
 
-			continue
-		}
+			err := c.WakePassword(tt.target, tt.password)
 
-		f := new(ethernet.Frame)
-		if err := f.UnmarshalBinary(p.b); err != nil {
-			t.Fatal(err)
-		}
+			if err != nil && tt.err == nil {
+				t.Fatal("expected an error, but none occurred")
+			}
+			if err == nil && tt.err != nil {
+				t.Fatalf("failed to send: %v", err)
+			}
+			if err != nil {
+				return
+			}
 
-		if want, got := tt.target, f.Destination; !bytes.Equal(want, got) {
-			t.Fatalf("[%02d] test %q, unexpected Ethernet frame destination:\n- want: %v\n-  got: %v",
-				i, tt.desc, want, got)
-		}
-		if want, got := zeroHW, f.Source; !bytes.Equal(want, got) {
-			t.Fatalf("[%02d] test %q, unexpected Ethernet frame source:\n- want: %v\n-  got: %v",
-				i, tt.desc, want, got)
-		}
-		if want, got := EtherType, f.EtherType; want != got {
-			t.Fatalf("[%02d] test %q, unexpected Ethernet frame EtherType:\n- want: %v\n-  got: %v",
-				i, tt.desc, want, got)
-		}
+			f := new(ethernet.Frame)
+			if err := f.UnmarshalBinary(p.b); err != nil {
+				t.Fatalf("failed to unmarshal Ethernet frame: %v", err)
+			}
 
-		mp := new(MagicPacket)
-		if err := mp.UnmarshalBinary(f.Payload); err != nil {
-			t.Fatal(err)
-		}
+			wantEth := &ethernet.Frame{
+				Destination: tt.target,
+				Source:      zeroHW,
+				EtherType:   EtherType,
+			}
 
-		if want, got := tt.target, mp.Target; !bytes.Equal(want, got) {
-			t.Fatalf("[%02d] test %q, unexpected MagicPacket target:\n- want: %v\n-  got: %v",
-				i, tt.desc, want, got)
-		}
-		if want, got := len(tt.password), len(mp.Password); want != got {
-			t.Fatalf("[%02d] test %q, unexpected MagicPacket password length:\n- want: %v\n-  got: %v",
-				i, tt.desc, want, got)
-		}
+			// Copy out payload and nil out for base Ethernet frame comparison.
+			pl := make([]byte, len(f.Payload))
+			copy(pl, f.Payload)
+			f.Payload = nil
+
+			if diff := cmp.Diff(wantEth, f); diff != "" {
+				t.Fatalf("unexpected Ethernet frame (-want +got):\n%s", diff)
+			}
+
+			mp := new(MagicPacket)
+			if err := mp.UnmarshalBinary(pl); err != nil {
+				t.Fatalf("failed to unmarshal MagicPacket: %v", err)
+			}
+
+			wantMP := &MagicPacket{
+				Target:   tt.target,
+				Password: tt.password,
+			}
+
+			if diff := cmp.Diff(wantMP, mp); diff != "" {
+				t.Fatalf("unexpected MagicPacket (-want +got):\n%s", diff)
+			}
+		})
 	}
 }
 

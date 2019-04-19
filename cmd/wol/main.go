@@ -19,24 +19,22 @@ var (
 func main() {
 	flag.Parse()
 
-	// Validate hardware address
 	target, err := net.ParseMAC(*targetFlag)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Set password if one is present
+	// Set password if one is present.
 	var password []byte
 	if *passwordFlag != "" {
 		password = []byte(*passwordFlag)
 	}
 
-	// Can only do raw or UDP mode, not both
+	// Can only do raw or UDP mode, not both.
 	if *addrFlag != "" && *ifaceFlag != "" {
 		log.Fatalf("must set '-a' or '-i' flag exclusively")
 	}
 
-	// Check for raw mode
 	if *ifaceFlag != "" {
 		if err := wakeRaw(*ifaceFlag, target, password); err != nil {
 			log.Fatal(err)
@@ -46,7 +44,6 @@ func main() {
 		return
 	}
 
-	// Use UDP mode
 	if err := wakeUDP(*addrFlag, target, password); err != nil {
 		log.Fatal(err)
 	}
@@ -55,37 +52,28 @@ func main() {
 }
 
 func wakeRaw(iface string, target net.HardwareAddr, password []byte) error {
-	// Validate interface
 	ifi, err := net.InterfaceByName(*ifaceFlag)
 	if err != nil {
 		return err
 	}
 
-	// Create client bound to specified interface
 	c, err := wol.NewRawClient(ifi)
 	if err != nil {
 		return err
 	}
+	defer c.Close()
 
-	// Attempt to wake target machine
-	if err := c.WakePassword(target, password); err != nil {
-		log.Fatal(err)
-	}
-
-	return c.Close()
+	// Attempt to wake target machine.
+	return c.WakePassword(target, password)
 }
 
 func wakeUDP(addr string, target net.HardwareAddr, password []byte) error {
-	// Bind to any available UDP port
 	c, err := wol.NewClient()
 	if err != nil {
 		return err
 	}
+	defer c.Close()
 
-	// Attempt to wake target machine
-	if err := c.WakePassword(addr, target, password); err != nil {
-		log.Fatal(err)
-	}
-
-	return c.Close()
+	// Attempt to wake target machine.
+	return c.WakePassword(addr, target, password)
 }

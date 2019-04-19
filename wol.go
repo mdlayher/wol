@@ -6,27 +6,26 @@ import (
 	"errors"
 	"io"
 	"net"
-
-	"github.com/mdlayher/ethernet"
 )
 
 const (
 	// EtherType is the registered EtherType for Wake-on-LAN over Ethernet.
-	EtherType ethernet.EtherType = 0x0842
+	// See: https://wiki.wireshark.org/WakeOnLAN.
+	EtherType = 0x0842
 )
 
 var (
-	// ErrInvalidPassword is returned if a MagicPacket's Password field is
+	// errInvalidPassword is returned if a MagicPacket's Password field is
 	// not exactly 0 (empty), 4, or 6 bytes in length.
-	ErrInvalidPassword = errors.New("invalid password length")
+	errInvalidPassword = errors.New("invalid password length")
 
-	// ErrInvalidSyncStream is returned if a MagicPacket's synchronization
+	// errInvalidSyncStream is returned if a MagicPacket's synchronization
 	// stream is incorrect.
-	ErrInvalidSyncStream = errors.New("invalid synchronization stream")
+	errInvalidSyncStream = errors.New("invalid synchronization stream")
 
-	// ErrInvalidTarget is returned if a MagicPacket does not contain the
+	// errInvalidTarget is returned if a MagicPacket does not contain the
 	// same target hardware address repeated 16 times.
-	ErrInvalidTarget = errors.New("invalid hardware address target")
+	errInvalidTarget = errors.New("invalid hardware address target")
 )
 
 var (
@@ -51,19 +50,19 @@ type MagicPacket struct {
 // MarshalBinary allocates a byte slice and marshals a MagicPacket into binary
 // form.
 //
-// If p.Target is not exactly 6 bytes in length, ErrInvalidTarget is returned.
+// If p.Target is not exactly 6 bytes in length, errInvalidTarget is returned.
 //
 // If p.Password is not exactly 0 (empty), 4, or 6 bytes in length,
-// ErrInvalidPassword is returned.
+// errInvalidPassword is returned.
 func (p *MagicPacket) MarshalBinary() ([]byte, error) {
 	// Must be 6 byte ethernet hardware address
 	if len(p.Target) != 6 {
-		return nil, ErrInvalidTarget
+		return nil, errInvalidTarget
 	}
 
 	// Verify password is correct length
 	if pl := len(p.Password); pl != 0 && pl != 4 && pl != 6 {
-		return nil, ErrInvalidPassword
+		return nil, errInvalidPassword
 	}
 
 	//    6 bytes: synchronization stream
@@ -90,15 +89,6 @@ func (p *MagicPacket) MarshalBinary() ([]byte, error) {
 //
 // If the byte slice does not contain enough data to unmarshal a valid
 // MagicPacket, io.ErrUnexpectedEOF is returned.
-//
-// If the initial 6 bytes of the slice do not contain the synchronization
-// stream value, ErrInvalidSyncStream is returned.
-//
-// If any of the 16 repeated target hardware addresses in the slice do not
-// match, ErrInvalidTarget is returned.
-//
-// If the password in the slice is not exactly 0 (empty), 4, or 6 bytes in
-// length, ErrInvalidPassword is returned.
 func (p *MagicPacket) UnmarshalBinary(b []byte) error {
 	// Must contain sync stream and 16 repeated targets
 	if len(b) < 6+(6*16) {
@@ -107,20 +97,20 @@ func (p *MagicPacket) UnmarshalBinary(b []byte) error {
 
 	// Sync stream must be correct
 	if !bytes.Equal(b[0:6], syncStream) {
-		return ErrInvalidSyncStream
+		return errInvalidSyncStream
 	}
 
 	// Hardware address must correctly repeat 16 times
 	for i := 0; i < 16; i++ {
 		if !bytes.Equal(b[6:12], b[6+(6*i):6+(6*i)+6]) {
-			return ErrInvalidTarget
+			return errInvalidTarget
 		}
 	}
 
 	// Password must be 0 (empty), 4, or 6 bytes in length
 	pl := len(b[6+(6*16):])
 	if pl != 0 && pl != 4 && pl != 6 {
-		return ErrInvalidPassword
+		return errInvalidPassword
 	}
 
 	// Allocate a single byte slice for target and password, and
