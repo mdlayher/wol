@@ -107,11 +107,7 @@ func (p *MagicPacket) UnmarshalBinary(b []byte) error {
 		}
 	}
 
-	// Password must be 0 (empty), 4, or 6 bytes in length
 	pl := len(b[6+(6*16):])
-	if pl != 0 && pl != 4 && pl != 6 {
-		return errInvalidPassword
-	}
 
 	// Allocate a single byte slice for target and password, and
 	// reslice it to store fields
@@ -122,6 +118,11 @@ func (p *MagicPacket) UnmarshalBinary(b []byte) error {
 
 	copy(bb[6:], b[len(b)-pl:])
 	p.Password = bb[6:]
+
+	// Password must be 0 (empty), 4, or 6 bytes in length
+	if pl != 0 && pl != 4 && pl != 6 {
+		return errInvalidPassword
+	}
 
 	return nil
 }
