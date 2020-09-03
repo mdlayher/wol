@@ -46,7 +46,7 @@ func TestMagicPacketMarshalBinary(t *testing.T) {
 				Target:   hwEthernet,
 				Password: []byte{0},
 			},
-			err: errInvalidPassword,
+			err: ErrInvalidPassword,
 		},
 		{
 			desc: "length 5 password",
@@ -54,7 +54,7 @@ func TestMagicPacketMarshalBinary(t *testing.T) {
 				Target:   hwEthernet,
 				Password: []byte{0, 1, 2, 3, 4},
 			},
-			err: errInvalidPassword,
+			err: ErrInvalidPassword,
 		},
 		{
 			desc: "length 7 password",
@@ -62,7 +62,7 @@ func TestMagicPacketMarshalBinary(t *testing.T) {
 				Target:   hwEthernet,
 				Password: []byte{0, 1, 2, 3, 4, 5, 6},
 			},
-			err: errInvalidPassword,
+			err: ErrInvalidPassword,
 		},
 		{
 			desc: "OK, no password",
@@ -238,7 +238,7 @@ func TestMagicPacketUnmarshalBinary(t *testing.T) {
 				0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
 				1, 2, 3,
 			},
-			err: errInvalidPassword,
+			err: ErrInvalidPassword,
 		},
 		{
 			desc: "length 5 password",
@@ -264,7 +264,7 @@ func TestMagicPacketUnmarshalBinary(t *testing.T) {
 				0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
 				1, 2, 3, 4, 5,
 			},
-			err: errInvalidPassword,
+			err: ErrInvalidPassword,
 		},
 		{
 			desc: "OK, no password",
