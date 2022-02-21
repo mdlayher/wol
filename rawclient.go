@@ -4,7 +4,7 @@ import (
 	"net"
 
 	"github.com/mdlayher/ethernet"
-	"github.com/mdlayher/raw"
+	"github.com/mdlayher/packet"
 )
 
 // A RawClient is a Wake-on-LAN client which operates directly on top of
@@ -23,9 +23,9 @@ type RawClient struct {
 // For this reason, it is typically recommended to use the regular Client type
 // instead, which operates over UDP.
 func NewRawClient(ifi *net.Interface) (*RawClient, error) {
-	// Open raw socket to send Wake-on-LAN magic packets.
+	// Open a packet socket to send Wake-on-LAN magic packets.
 	// EtherType is set according to: https://wiki.wireshark.org/WakeOnLAN.
-	p, err := raw.ListenPacket(ifi, EtherType, nil)
+	p, err := packet.Listen(ifi, packet.Raw, EtherType, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (c *RawClient) sendWake(target net.HardwareAddr, password []byte) error {
 	}
 
 	// Send magic packet to target.
-	_, err = c.p.WriteTo(fb, &raw.Addr{
+	_, err = c.p.WriteTo(fb, &packet.Addr{
 		HardwareAddr: target,
 	})
 	return err
