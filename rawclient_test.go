@@ -30,13 +30,13 @@ func TestRawClientWakePassword(t *testing.T) {
 			name:     "5 bytes password",
 			target:   make(net.HardwareAddr, 6),
 			password: make([]byte, 5),
-			err:      errInvalidPassword,
+			err:      ErrInvalidPassword,
 		},
 		{
 			name:     "7 byte password",
 			target:   make(net.HardwareAddr, 6),
 			password: make([]byte, 7),
-			err:      errInvalidPassword,
+			err:      ErrInvalidPassword,
 		},
 		{
 			name:     "OK, no password",

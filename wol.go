@@ -15,9 +15,9 @@ const (
 )
 
 var (
-	// errInvalidPassword is returned if a MagicPacket's Password field is
+	// ErrInvalidPassword is returned if a MagicPacket's Password field is
 	// not exactly 0 (empty), 4, or 6 bytes in length.
-	errInvalidPassword = errors.New("invalid password length")
+	ErrInvalidPassword = errors.New("invalid password length")
 
 	// errInvalidSyncStream is returned if a MagicPacket's synchronization
 	// stream is incorrect.
@@ -53,7 +53,7 @@ type MagicPacket struct {
 // If p.Target is not exactly 6 bytes in length, errInvalidTarget is returned.
 //
 // If p.Password is not exactly 0 (empty), 4, or 6 bytes in length,
-// errInvalidPassword is returned.
+// ErrInvalidPassword is returned.
 func (p *MagicPacket) MarshalBinary() ([]byte, error) {
 	// Must be 6 byte ethernet hardware address
 	if len(p.Target) != 6 {
@@ -62,7 +62,7 @@ func (p *MagicPacket) MarshalBinary() ([]byte, error) {
 
 	// Verify password is correct length
 	if pl := len(p.Password); pl != 0 && pl != 4 && pl != 6 {
-		return nil, errInvalidPassword
+		return nil, ErrInvalidPassword
 	}
 
 	//    6 bytes: synchronization stream
@@ -107,11 +107,7 @@ func (p *MagicPacket) UnmarshalBinary(b []byte) error {
 		}
 	}
 
-	// Password must be 0 (empty), 4, or 6 bytes in length
 	pl := len(b[6+(6*16):])
-	if pl != 0 && pl != 4 && pl != 6 {
-		return errInvalidPassword
-	}
 
 	// Allocate a single byte slice for target and password, and
 	// reslice it to store fields
@@ -122,6 +118,11 @@ func (p *MagicPacket) UnmarshalBinary(b []byte) error {
 
 	copy(bb[6:], b[len(b)-pl:])
 	p.Password = bb[6:]
+
+	// Password must be 0 (empty), 4, or 6 bytes in length
+	if pl != 0 && pl != 4 && pl != 6 {
+		return ErrInvalidPassword
+	}
 
 	return nil
 }
